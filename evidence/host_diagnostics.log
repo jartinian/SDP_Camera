@@ -1,0 +1,15 @@
+{
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "opencv": "4.5.4",
+  "torch": "2.5.0a0+872d972e41.nv24.08",
+  "cuda_available": true,
+  "video_build": [
+    "GUI:                           GTK3",
+    "FFMPEG:                      YES",
+    "GStreamer:                   YES (1.19.90)"
+  ],
+  "ultralytics": "8.3.248",
+  "numpy": "1.26.4",
+  "torchvision": "0.20.0a0+afc54f7",
+  "pyserial": "3.5"
+}

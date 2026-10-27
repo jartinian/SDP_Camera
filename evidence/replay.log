@@ -1,0 +1,4 @@
+Session: /home/sdp2026/Documents/ChatGPT/proj/jetson_camera_toolkit/evidence/replay_runs/20261027T205210Z_549ff7bd
+Recording: evidence/replay_runs/20261027T205210Z_549ff7bd/video.mp4
+Processed 3 | average 2.8 FPS | detections 0
+{"state": "stopped", "error": null, "processed_frames": 8, "elapsed_seconds": 1.7085384290003276, "recorded_frames": 8, "recording": "evidence/replay_runs/20261027T205210Z_549ff7bd/video.mp4"}

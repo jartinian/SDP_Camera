@@ -1,0 +1,6 @@
+from ultralytics import YOLO
+
+model = YOLO("yolov8n.pt")
+
+# 0 = webcam, can also be RTSP or CSI pipeline
+model.predict(source=0, show=True, stream=True)

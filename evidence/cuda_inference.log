@@ -1,0 +1,7 @@
+NvMapMemAllocInternalTagged: 1075072515 error 12
+NvMapMemHandleAlloc: error 0
+NvMapMemAllocInternalTagged: 1075072515 error 12
+NvMapMemHandleAlloc: error 0
+Session: /home/sdp2026/Documents/ChatGPT/proj/jetson_camera_toolkit/evidence/cuda_runs/20261027T205912Z_c6f481b6
+Processed 1 | average 0.3 FPS | detections 0
+{"state": "stopped", "error": null, "processed_frames": 3, "elapsed_seconds": 3.3227973529992596, "recorded_frames": 0, "recording": null}

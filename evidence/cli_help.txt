@@ -1,0 +1,72 @@
+usage: camera_toolkit.py [-h] [--diagnose] [--print-pipeline] [--model MODEL]
+                         [--device {0,cpu}] [--no-inference] [--track]
+                         [--classes CLASSES [CLASSES ...]] [--conf CONF]
+                         [--imgsz IMGSZ] [--max-det MAX_DET] [--show]
+                         [--record {off,auto,mp4,avi}]
+                         [--record-fps RECORD_FPS] [--record-required]
+                         [--stream] [--host HOST] [--port PORT] [--ros]
+                         [--ros-images] [--uart-port UART_PORT]
+                         [--uart-observer-confirmed] [--uart-baud UART_BAUD]
+                         [--uart-rate UART_RATE] [--source-file SOURCE_FILE]
+                         [--output OUTPUT] [--frames FRAMES]
+                         [--seconds SECONDS] [--frame-timeout FRAME_TIMEOUT]
+                         [--max-frame-age MAX_FRAME_AGE]
+                         [--min-free-mb MIN_FREE_MB] [--sensor-id SENSOR_ID]
+                         [--sensor-mode SENSOR_MODE]
+                         [--capture-width CAPTURE_WIDTH]
+                         [--capture-height CAPTURE_HEIGHT]
+                         [--capture-fps CAPTURE_FPS] [--width WIDTH]
+                         [--height HEIGHT] [--flip FLIP]
+
+Command line entry point; optional integrations are disabled by default.
+
+options:
+  -h, --help            show this help message and exit
+  --diagnose            Report libraries and CUDA without opening
+                        camera/UART/ROS
+  --print-pipeline
+  --model MODEL         Existing trusted local model; no implicit download
+  --device {0,cpu}      CUDA required by default; CPU must be explicit
+  --no-inference        Camera only, no model/CUDA import
+  --track               ByteTrack persistent object IDs
+  --classes CLASSES [CLASSES ...]
+  --conf CONF
+  --imgsz IMGSZ
+  --max-det MAX_DET
+  --show                Opt-in desktop window; q exits
+  --record {off,auto,mp4,avi}
+  --record-fps RECORD_FPS
+                        Playback FPS; one recorded frame per processed frame;
+                        timestamps in CSV
+  --record-required     Fail session if recorder initialization fails
+  --stream              MJPEG at /video and /snapshot.jpg
+  --host HOST
+  --port PORT
+  --ros                 Publish isolated /camera_observer observations
+  --ros-images
+  --uart-port UART_PORT
+                        Dedicated telemetry receiver only; no default device
+  --uart-observer-confirmed
+                        Confirm this port connects exclusively to an
+                        observation receiver, not motor hardware
+  --uart-baud UART_BAUD
+  --uart-rate UART_RATE
+  --source-file SOURCE_FILE
+                        Replay an existing video instead of CSI (paced, latest
+                        frame)
+  --output OUTPUT
+  --frames FRAMES       Stop after N processed frames; 0 unlimited
+  --seconds SECONDS     Maximum observation-loop duration
+  --frame-timeout FRAME_TIMEOUT
+  --max-frame-age MAX_FRAME_AGE
+                        Reject observations older than this after inference;
+                        does not measure sensor latency
+  --min-free-mb MIN_FREE_MB
+  --sensor-id SENSOR_ID
+  --sensor-mode SENSOR_MODE
+  --capture-width CAPTURE_WIDTH
+  --capture-height CAPTURE_HEIGHT
+  --capture-fps CAPTURE_FPS
+  --width WIDTH
+  --height HEIGHT
+  --flip FLIP

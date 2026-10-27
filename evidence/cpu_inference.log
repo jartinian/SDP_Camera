@@ -1,0 +1,13 @@
+NvRmMemInitNvmap failed with No such file or directory
+356: Memory Manager Not supported
+
+
+
+****NvRmMemMgrInit failed**** error type: 196626
+
+
+/home/sdp2026/.local/lib/python3.10/site-packages/torch/cuda/__init__.py:129: UserWarning: CUDA initialization: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero. (Triggered internally at /opt/pytorch/pytorch/c10/cuda/CUDAFunctions.cpp:108.)
+  return torch._C._cuda_getDeviceCount() > 0
+Session: /home/sdp2026/Documents/ChatGPT/proj/jetson_camera_toolkit/evidence/cpu_runs/20261027T205616Z_7d8808d3
+Processed 2 | average 1.8 FPS | detections 0
+{"state": "stopped", "error": null, "processed_frames": 2, "elapsed_seconds": 1.1924896949994945, "recorded_frames": 0, "recording": null}

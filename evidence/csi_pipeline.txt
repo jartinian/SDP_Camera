@@ -1,0 +1,1 @@
+nvarguscamerasrc sensor-id=0 sensor-mode=2 ! video/x-raw(memory:NVMM),format=(string)NV12,width=(int)1920,height=(int)1080,framerate=(fraction)60/1 ! nvvidconv flip-method=0 ! video/x-raw,width=(int)1280,height=(int)720,format=(string)BGRx ! videoconvert ! video/x-raw,format=(string)BGR ! appsink drop=true max-buffers=1 sync=false

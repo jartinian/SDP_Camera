@@ -1,0 +1,8 @@
+{
+  "state": "fault",
+  "error": "Capture returned no frame",
+  "processed_frames": 0,
+  "elapsed_seconds": 3.0413567940004214,
+  "recorded_frames": 0,
+  "recording": null
+}

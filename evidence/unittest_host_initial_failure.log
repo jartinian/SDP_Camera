@@ -1,0 +1,56 @@
+test_observation_delivery (test_ros_optional.RosLoopbackTest) ... ERROR
+Exception ignored in: <function Executor.__del__ at 0xffff81190280>
+Traceback (most recent call last):
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 272, in __del__
+    if self._sigint_gc is not None:
+AttributeError: 'SingleThreadedExecutor' object has no attribute '_sigint_gc'
+test_bad_camera_config (test_toolkit.CoreTests) ... ok
+test_control_boundary (test_toolkit.CoreTests) ... ok
+test_empty_and_camera_only_distinct (test_toolkit.CoreTests) ... ok
+test_no_device_side_effect_on_import (test_toolkit.CoreTests) ... ok
+test_normalized_actual_resolution (test_toolkit.CoreTests) ... ok
+test_one_inference_and_persistent_tracking (test_toolkit.CoreTests) ... ok
+test_pipeline (test_toolkit.CoreTests) ... ok
+test_reject_invalid_boxes (test_toolkit.CoreTests) ... ok
+test_safe_defaults_and_validation (test_toolkit.CoreTests) ... ok
+test_uart_roundtrip_and_corruption (test_toolkit.CoreTests) ... ok
+test_capture_timeout_is_bounded (test_toolkit.LifecycleTests) ... ok
+test_cleanup_on_inference_fault (test_toolkit.LifecycleTests) ... Session: /tmp/tmp0hvnzdvx/20261027T205905Z_9890b7eb
+ERROR: injected inference failure
+{"state": "fault", "error": "injected inference failure", "processed_frames": 0, "elapsed_seconds": 0.0009770139995453064, "recorded_frames": 0, "recording": null}
+ok
+test_stale_frame_not_published (test_toolkit.LifecycleTests) ... Session: /tmp/tmp2q1323z9/20261027T205906Z_8e46ba58
+ERROR: Processed frame is stale (4.002s); observation suppressed
+{"state": "fault", "error": "Processed frame is stale (4.002s); observation suppressed", "processed_frames": 0, "elapsed_seconds": 0.0007864499993956997, "recorded_frames": 0, "recording": null}
+ok
+test_http_stream_snapshot_and_shutdown (test_toolkit.OutputTests) ... ok
+test_mp4_fallback (test_toolkit.OutputTests) ... ok
+test_shared_latest_frame_and_staleness (test_toolkit.OutputTests) ... ok
+test_software_recording_roundtrip (test_toolkit.OutputTests) ... ok
+test_uart_partial_write_fails_and_rate_limits (test_toolkit.OutputTests) ... ok
+test_waiter_wakes_on_close (test_toolkit.OutputTests) ... ok
+
+======================================================================
+ERROR: test_observation_delivery (test_ros_optional.RosLoopbackTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/sdp2026/Documents/ChatGPT/proj/jetson_camera_toolkit/tests/test_ros_optional.py", line 38, in test_observation_delivery
+    observer.publish(obs, b"jpeg-test")
+  File "/home/sdp2026/Documents/ChatGPT/proj/jetson_camera_toolkit/ugv_camera/outputs.py", line 247, in publish
+    self.rclpy.spin_once(self.node, timeout_sec=0)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 203, in spin_once
+    executor = get_global_executor() if executor is None else executor
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 106, in get_global_executor
+    __executor = SingleThreadedExecutor()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 790, in __init__
+    super().__init__(context=context)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 187, in __init__
+    self._guard = GuardCondition(
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/guard_condition.py", line 23, in __init__
+    with self._context.handle:
+AttributeError: __enter__
+
+----------------------------------------------------------------------
+Ran 20 tests in 2.288s
+
+FAILED (errors=1)

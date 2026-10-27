@@ -1,0 +1,105 @@
+# jetson_uart_yolo_tx_headless.py
+
+import cv2
+import time
+import serial
+from ultralytics import YOLO
+
+# -----------------------------
+# UART SETUP (JETSON)
+# -----------------------------
+uart = serial.Serial(
+    "/dev/ttyTHS1",
+    baudrate=115200,
+    timeout=0  # NON-BLOCKING
+)
+
+# -----------------------------
+# YOLO SETUP
+# -----------------------------
+model = YOLO("yolov8n.pt")
+
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    raise RuntimeError("Camera failed to open")
+
+prev_time = 0
+
+print("Running headless... Ctrl+C to stop")
+
+try:
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # -----------------------------
+        # YOLO INFERENCE
+        # -----------------------------
+        results = model(frame, verbose=False)
+
+        best_box = None
+        best_conf = 0
+
+        for r in results:
+            if r.boxes is None:
+                continue
+
+            for box in r.boxes:
+                conf = float(box.conf[0])
+                if conf > best_conf:
+                    best_conf = conf
+                    best_box = box
+
+        # -----------------------------
+        # UART TRANSMIT
+        # -----------------------------
+        if best_box is not None:
+            x_min, y_min, x_max, y_max = map(int, best_box.xyxy[0].tolist())
+            class_id = int(best_box.cls[0])
+            conf_int = int(best_conf * 100)
+
+            # Center + direction logic
+            center_x = (x_min + x_max) // 2
+
+            if center_x > 330:
+                direction = "R"
+            elif center_x < 310:
+                direction = "L"
+            else:
+                direction = "C"
+
+            if y_min < 50:
+                stop_flag = "S"
+            else:
+                stop_flag = "_"
+
+            message = f"{class_id},{x_min},{y_min},{x_max},{y_max},{conf_int},{direction}{stop_flag}\n"
+
+            if uart.out_waiting < 1024:
+                uart.write(message.encode("ascii"))
+
+        # -----------------------------
+        # NON-BLOCKING RX (ACK)
+        # -----------------------------
+        if uart.in_waiting > 0:
+            try:
+                ack = uart.readline().decode("ascii", errors="ignore").strip()
+                if ack:
+                    print("RX:", ack)
+            except:
+                pass
+
+        # -----------------------------
+        # FPS LOG (optional)
+        # -----------------------------
+        fps = 1 / (time.time() - prev_time) if prev_time else 0
+        prev_time = time.time()
+
+        print(f"FPS: {fps:.1f}", end="\r")
+
+except KeyboardInterrupt:
+    print("\nStopped")
+
+finally:
+    cap.release()

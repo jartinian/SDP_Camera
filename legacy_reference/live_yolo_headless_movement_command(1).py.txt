@@ -1,0 +1,133 @@
+# live_yolo_headless.py
+
+import time
+import cv2
+from ultralytics import YOLO
+import serial
+
+# -----------------------------
+# UART SETUP
+# -----------------------------
+uart = serial.Serial(
+    "/dev/ttyTHS1",
+    baudrate=115200,
+    timeout=0.05
+)
+
+# -----------------------------
+# CONFIG
+# -----------------------------
+model = YOLO("yolov8n.pt")
+
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    raise RuntimeError("Cannot open camera")
+
+width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+HFOV_DEG = 78.0
+TARGET_CLASS_ID = 11   # stop sign
+
+MIN_CONF = 0.001        # ignore weak detections
+ANGLE_ALPHA = 0.15     # smoothing factor (0.2–0.3 good)
+
+# -----------------------------
+# STATE
+# -----------------------------
+smoothed_angle = 0.0
+has_angle = False
+
+print(f"Tracking STOP SIGN (class {TARGET_CLASS_ID}) with smoothing...")
+
+try:
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Camera read failed")
+            break
+
+        results = model(frame, verbose=False)
+
+        best_box = None
+        best_conf = 0.0
+
+        # -----------------------------
+        # Find best stop sign
+        # -----------------------------
+        for r in results:
+            if r.boxes is None:
+                continue
+
+            for box in r.boxes:
+                class_id = int(box.cls[0])
+                conf = float(box.conf[0])
+
+                if class_id != TARGET_CLASS_ID:
+                    continue
+
+                if conf < MIN_CONF:
+                    continue
+
+                if conf > best_conf:
+                    best_conf = conf
+                    best_box = box
+
+        # -----------------------------
+        # Send UART packet
+        # -----------------------------
+        if best_box is not None:
+            x_min, y_min, x_max, y_max = best_box.xyxy[0].tolist()
+
+            x_min = int(x_min)
+            y_min = int(y_min)
+            x_max = int(x_max)
+            y_max = int(y_max)
+
+            conf_int = int(best_conf * 100)
+
+            # -----------------------------
+            # Angle calculation
+            # -----------------------------
+            center_x = (x_min + x_max) / 2.0
+            raw_angle = (center_x - (width / 2.0)) * (HFOV_DEG / width)
+
+            # -----------------------------
+            # Smooth angle (low-pass filter)
+            # -----------------------------
+            if not has_angle:
+                smoothed_angle = raw_angle
+                has_angle = True
+            else:
+                smoothed_angle = (
+                    (1.0 - ANGLE_ALPHA) * smoothed_angle
+                    + ANGLE_ALPHA * raw_angle
+                )
+
+            angle = smoothed_angle
+
+            # -----------------------------
+            # Send clean packet
+            # -----------------------------
+            message = (
+                f"{TARGET_CLASS_ID},{x_min},{y_min},{x_max},{y_max},"
+                f"{conf_int},{angle:.2f}\n"
+            )
+
+            uart.write(message.encode("ascii"))
+            print(message, end="")
+
+        else:
+            uart.write(b"NO_TARGET\n")
+            has_angle = False
+            print("NO_TARGET")
+
+        time.sleep(0.05)  # ~20 Hz
+
+except KeyboardInterrupt:
+    print("Stopped")
+
+finally:
+    cap.release()
+    uart.close()
+    print("Clean shutdown")

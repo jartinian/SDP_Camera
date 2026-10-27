@@ -1,0 +1,5 @@
+Session: /home/sdp2026/Documents/ChatGPT/proj/jetson_camera_toolkit/evidence/csi_runs/20261027T205810Z_f2f8c7f8
+Error generated. /dvs/git/dirty/git-master_linux/multimedia/nvgstreamer/gst-nvarguscamera/gstnvarguscamerasrc.cpp, execute:805 Failed to create CaptureSession
+[ WARN:0] global ./modules/videoio/src/cap_gstreamer.cpp (1100) open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+ERROR: Capture returned no frame
+{"state": "fault", "error": "Capture returned no frame", "processed_frames": 0, "elapsed_seconds": 3.0413567940004214, "recorded_frames": 0, "recording": null}

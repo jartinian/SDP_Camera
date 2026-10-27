@@ -1,0 +1,31 @@
+test_observation_delivery (test_ros_optional.RosLoopbackTest) ... ok
+test_bad_camera_config (test_toolkit.CoreTests) ... ok
+test_control_boundary (test_toolkit.CoreTests) ... ok
+test_empty_and_camera_only_distinct (test_toolkit.CoreTests) ... ok
+test_no_device_side_effect_on_import (test_toolkit.CoreTests) ... ok
+test_normalized_actual_resolution (test_toolkit.CoreTests) ... ok
+test_one_inference_and_persistent_tracking (test_toolkit.CoreTests) ... ok
+test_pipeline (test_toolkit.CoreTests) ... ok
+test_reject_invalid_boxes (test_toolkit.CoreTests) ... ok
+test_safe_defaults_and_validation (test_toolkit.CoreTests) ... ok
+test_uart_roundtrip_and_corruption (test_toolkit.CoreTests) ... ok
+test_capture_timeout_is_bounded (test_toolkit.LifecycleTests) ... ok
+test_cleanup_on_inference_fault (test_toolkit.LifecycleTests) ... Session: /tmp/tmpxabddy8v/20261027T205950Z_13b380ef
+ERROR: injected inference failure
+{"state": "fault", "error": "injected inference failure", "processed_frames": 0, "elapsed_seconds": 0.0009662190004746662, "recorded_frames": 0, "recording": null}
+ok
+test_stale_frame_not_published (test_toolkit.LifecycleTests) ... Session: /tmp/tmpww7itsna/20261027T205950Z_9ec92dc4
+ERROR: Processed frame is stale (4.002s); observation suppressed
+{"state": "fault", "error": "Processed frame is stale (4.002s); observation suppressed", "processed_frames": 0, "elapsed_seconds": 0.0007654219998585177, "recorded_frames": 0, "recording": null}
+ok
+test_http_stream_snapshot_and_shutdown (test_toolkit.OutputTests) ... ok
+test_mp4_fallback (test_toolkit.OutputTests) ... ok
+test_shared_latest_frame_and_staleness (test_toolkit.OutputTests) ... ok
+test_software_recording_roundtrip (test_toolkit.OutputTests) ... ok
+test_uart_partial_write_fails_and_rate_limits (test_toolkit.OutputTests) ... ok
+test_waiter_wakes_on_close (test_toolkit.OutputTests) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 1.969s
+
+OK

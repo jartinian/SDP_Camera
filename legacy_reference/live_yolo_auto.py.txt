@@ -1,0 +1,316 @@
+
+# live_yolo_auto.py
+# Jetson Orin Nano + Arducam IMX477 CSI + YOLOv8n
+
+import os
+import time
+import cv2
+import torch
+from ultralytics import YOLO
+
+# ----------------------------------
+# CONFIGURATION
+# ----------------------------------
+
+MODEL_PATH = "yolov8n.pt"
+
+# The IMX477 is physically connected to CAM1.
+# Since it is the only enumerated camera,
+# NVIDIA Argus uses sensor-id=0.
+SENSOR_ID = 0
+
+# Confirmed IMX477 sensor mode
+CAPTURE_WIDTH = 1920
+CAPTURE_HEIGHT = 1080
+CAPTURE_FPS = 60
+
+# Smaller output frames for processing
+OUTPUT_WIDTH = 1280
+OUTPUT_HEIGHT = 720
+
+# YOLO settings
+CONFIDENCE = 0.25
+IMAGE_SIZE = 640
+
+# Video recording
+RECORDING_FPS = 10.0
+SAVE_VIDEO = True
+
+# Set True when running on a Jetson desktop
+# with a functioning graphical display.
+# Use False for SSH/headless execution.
+SHOW_WINDOW = False
+
+# ----------------------------------
+# OUTPUT DIRECTORY
+# ----------------------------------
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+output_dir = os.path.join(
+    script_dir, "runs", "detect", "live"
+)
+
+os.makedirs(output_dir, exist_ok=True)
+
+output_path = os.path.join(output_dir, "live.mp4")
+
+# ----------------------------------
+# NVIDIA GPU
+# ----------------------------------
+
+if not torch.cuda.is_available():
+    raise RuntimeError(
+        "CUDA unavailable. Check NVIDIA PyTorch."
+    )
+
+print("===================================")
+print("Jetson Orin Nano - CSI YOLOv8")
+print("===================================")
+print("GPU:", torch.cuda.get_device_name(0))
+print("PyTorch:", torch.__version__)
+print("CUDA:", torch.cuda.is_available())
+
+# ----------------------------------
+# CSI CAMERA GSTREAMER PIPELINE
+# ----------------------------------
+
+# Capture IMX477 at a supported sensor mode.
+# Scale using nvvidconv.
+# Convert frames to BGR for OpenCV.
+# Drop older frames to reduce backlog.
+
+pipeline = (
+    f"nvarguscamerasrc sensor-id={SENSOR_ID} ! "
+    "video/x-raw(memory:NVMM), "
+    f"width=(int){CAPTURE_WIDTH}, "
+    f"height=(int){CAPTURE_HEIGHT}, "
+    "format=(string)NV12, "
+    f"framerate=(fraction){CAPTURE_FPS}/1 ! "
+    "nvvidconv ! "
+    "video/x-raw, "
+    f"width=(int){OUTPUT_WIDTH}, "
+    f"height=(int){OUTPUT_HEIGHT}, "
+    "format=(string)BGRx ! "
+    "videoconvert ! "
+    "video/x-raw, format=(string)BGR ! "
+    "appsink drop=true max-buffers=1 sync=false"
+)
+
+# ----------------------------------
+# OPEN CAMERA
+# ----------------------------------
+
+print("Opening IMX477 CSI camera...")
+
+cap = cv2.VideoCapture(
+    pipeline,
+    cv2.CAP_GSTREAMER
+)
+
+if not cap.isOpened():
+    raise RuntimeError(
+        "Cannot open CSI camera. "
+        "Stop cam_server.py and check Argus."
+    )
+
+ret, frame = cap.read()
+
+if not ret or frame is None:
+    cap.release()
+    raise RuntimeError(
+        "CSI camera opened but returned no frame. "
+        "Check Argus CaptureSession errors."
+    )
+
+height, width = frame.shape[:2]
+
+print("Camera connected successfully.")
+print(f"Frame resolution: {width}x{height}")
+
+# ----------------------------------
+# LOAD MODEL
+# ----------------------------------
+
+print("Loading YOLOv8n...")
+
+try:
+    model = YOLO(MODEL_PATH)
+except Exception:
+    cap.release()
+    raise
+
+print("YOLO model loaded.")
+
+# ----------------------------------
+# VIDEO WRITER
+# ----------------------------------
+
+out = None
+
+if SAVE_VIDEO:
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+
+    out = cv2.VideoWriter(
+        output_path,
+        fourcc,
+        RECORDING_FPS,
+        (width, height)
+    )
+
+    if not out.isOpened():
+        cap.release()
+        raise RuntimeError(
+            "Cannot initialize MP4 recording."
+        )
+
+    print("Recording:", output_path)
+
+# ----------------------------------
+# LIVE YOLO INFERENCE
+# ----------------------------------
+
+print("===================================")
+print("Starting live CSI YOLO detection")
+print("Press Ctrl+C to stop")
+print("===================================")
+
+frame_count = 0
+previous_time = None
+start_time = time.perf_counter()
+recorded_frames = 0
+
+try:
+    while True:
+
+        # Read directly from CSI camera
+        ret, frame = cap.read()
+
+        if not ret or frame is None:
+            print("Failed to capture CSI frame.")
+            break
+
+        # ----------------------------------
+        # GPU INFERENCE
+        # ----------------------------------
+
+        results = model.predict(
+            source=frame,
+            device=0,
+            imgsz=IMAGE_SIZE,
+            conf=CONFIDENCE,
+            verbose=False
+        )
+
+        annotated_frame = results[0].plot()
+
+        # ----------------------------------
+        # PERFORMANCE METRICS
+        # ----------------------------------
+
+        now = time.perf_counter()
+
+        fps = (
+            1.0 / max(now - previous_time, 1e-6)
+            if previous_time is not None
+            else 0.0
+        )
+
+        previous_time = now
+        frame_count += 1
+
+        boxes = results[0].boxes
+        object_count = len(boxes) if boxes is not None else 0
+
+        # Display FPS
+        cv2.putText(
+            annotated_frame,
+            f"FPS: {fps:.1f}",
+            (10, 35),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2
+        )
+
+        # Display detected object count
+        cv2.putText(
+            annotated_frame,
+            f"Objects: {object_count}",
+            (10, 75),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
+            2
+        )
+
+        # ----------------------------------
+        # SAVE VIDEO
+        # ----------------------------------
+
+        if SAVE_VIDEO:
+            # Match recording duration to elapsed
+            # time by repeating frames when needed.
+            elapsed = now - start_time
+            expected_frames = int(elapsed * RECORDING_FPS)
+
+            while recorded_frames < expected_frames:
+                out.write(annotated_frame)
+                recorded_frames += 1
+
+        # ----------------------------------
+        # PERFORMANCE LOG
+        # ----------------------------------
+
+        if frame_count % 30 == 0:
+            print(
+                f"Frames: {frame_count} | "
+                f"FPS: {fps:.1f} | "
+                f"Objects: {object_count}"
+            )
+
+        # ----------------------------------
+        # OPTIONAL DISPLAY
+        # ----------------------------------
+
+        if SHOW_WINDOW:
+            cv2.imshow(
+                "Jetson CSI YOLOv8",
+                annotated_frame
+            )
+
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+except KeyboardInterrupt:
+    print("\nStopped by user.")
+
+finally:
+    cap.release()
+
+    if out is not None:
+        out.release()
+
+    if SHOW_WINDOW:
+        cv2.destroyAllWindows()
+
+    elapsed = time.perf_counter() - start_time
+
+    avg_fps = (
+        frame_count / elapsed
+        if elapsed > 0
+        else 0.0
+    )
+
+    print("\n===================================")
+    print("YOLO Session Summary")
+    print("===================================")
+    print("Frames processed:", frame_count)
+    print(f"Average FPS: {avg_fps:.2f}")
+    print(f"Elapsed time: {elapsed:.2f}s")
+
+    if SAVE_VIDEO:
+        print("Video saved:", output_path)
+
+    print("===================================")
+

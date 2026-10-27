@@ -1,0 +1,21 @@
+PASS: all 20 delivered Python files parse and compile.
+camera_toolkit.py
+live_yolo.py
+live_yolo1.py
+live_yolo_Tracking.py
+live_yolo_auto.py
+live_yolo_fps.py
+live_yolo_headless.py
+live_yolo_headless_movement_command(1).py
+live_yolo_headless_movement_command1.py
+live_yolo_headless_movement_command2.py
+live_yolo_stream.py
+live_yolo_stream_movement.py
+tests/test_ros_optional.py
+tests/test_toolkit.py
+ugv_camera/__init__.py
+ugv_camera/__main__.py
+ugv_camera/capture.py
+ugv_camera/cli.py
+ugv_camera/core.py
+ugv_camera/outputs.py

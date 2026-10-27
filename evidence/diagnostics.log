@@ -1,0 +1,25 @@
+NvRmMemInitNvmap failed with No such file or directory
+356: Memory Manager Not supported
+
+
+
+****NvRmMemMgrInit failed**** error type: 196626
+
+
+/home/sdp2026/.local/lib/python3.10/site-packages/torch/cuda/__init__.py:129: UserWarning: CUDA initialization: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero. (Triggered internally at /opt/pytorch/pytorch/c10/cuda/CUDAFunctions.cpp:108.)
+  return torch._C._cuda_getDeviceCount() > 0
+{
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "opencv": "4.5.4",
+  "torch": "2.5.0a0+872d972e41.nv24.08",
+  "cuda_available": false,
+  "video_build": [
+    "GUI:                           GTK3",
+    "FFMPEG:                      YES",
+    "GStreamer:                   YES (1.19.90)"
+  ],
+  "ultralytics": "8.3.248",
+  "numpy": "1.26.4",
+  "torchvision": "0.20.0a0+afc54f7",
+  "pyserial": "3.5"
+}
