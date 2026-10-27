@@ -1,6 +1,7 @@
 import ast
 import importlib
 import json
+import os
 from pathlib import Path
 from queue import Empty
 import tempfile
@@ -11,7 +12,7 @@ from unittest.mock import Mock, patch
 
 from ugv_camera.core import CameraConfig, detection, observation, uart_packet, parse_uart_packet
 from ugv_camera.cli import parser, validate, infer, run
-from ugv_camera.capture import Capture
+from ugv_camera.capture import Capture, _worker
 from ugv_camera.outputs import FrameHub, Recorder, StreamServer, UartObserver
 
 
@@ -193,6 +194,54 @@ class OutputTests(unittest.TestCase):
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_capture_restores_camera_visibility_before_open(self):
+        for original in (None, '0'):
+            with self.subTest(original=original), patch.dict(os.environ):
+                os.environ['CUDA_VISIBLE_DEVICES'] = ''  # CPU inference selection
+                camera = Mock()
+                cv2 = Mock(CAP_GSTREAMER=1800)
+                def open_camera(*args):
+                    self.assertEqual(os.environ.get('CUDA_VISIBLE_DEVICES'), original)
+                    return camera
+                cv2.VideoCapture.side_effect = open_camera
+                with patch.dict('sys.modules', {'cv2': cv2}):
+                    _worker(CameraConfig(), None, Mock(), Mock(), Mock(is_set=lambda: True),
+                            {'CUDA_VISIBLE_DEVICES': original})
+                cv2.VideoCapture.assert_called_once()
+                camera.release.assert_called_once()
+
+    def test_camera_visibility_saved_before_model_selection(self):
+        import numpy as np
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ):
+            os.environ.pop('CUDA_VISIBLE_DEVICES', None)
+            a = parser().parse_args(['--output', tmp, '--frames', '1', '--device', 'cpu'])
+            def load(args):
+                os.environ['CUDA_VISIBLE_DEVICES'] = ''
+                return Mock()
+            cap = Mock()
+            cap.read.return_value = (time.time_ns(), time.monotonic_ns(),
+                                     np.zeros((48, 64, 3), dtype=np.uint8))
+            with patch('ugv_camera.cli.load_model', side_effect=load), \
+                 patch('ugv_camera.capture.Capture', return_value=cap) as create, \
+                 patch('ugv_camera.cli.infer', return_value=(None, [])):
+                self.assertEqual(run(a), 0)
+            self.assertEqual(create.call_args.kwargs['environment'], {'CUDA_VISIBLE_DEVICES': None})
+            self.assertEqual(os.environ['CUDA_VISIBLE_DEVICES'], '')
+
+    def test_capture_worker_exit_reports_signal_and_pid(self):
+        for code, expected in ((-9, 'SIGKILL'), (-11, 'SIGSEGV'), (1, 'exit code 1')):
+            with self.subTest(code=code):
+                cap = Capture.__new__(Capture)
+                cap.frames = Mock()
+                cap.frames.get.side_effect = Empty()
+                cap.events = Mock()
+                cap.events.get_nowait.side_effect = Empty()
+                cap.process = Mock(pid=12345, exitcode=code, is_alive=lambda: False)
+                with self.assertRaises(RuntimeError) as caught:
+                    cap.read(.1)
+                self.assertIn(expected, str(caught.exception))
+                self.assertIn('pid 12345', str(caught.exception))
+
     def test_capture_timeout_is_bounded(self):
         cap = Capture.__new__(Capture)
         cap.frames = Mock()

@@ -1,11 +1,23 @@
 """Bounded latest-frame acquisition, isolated from potentially blocking native reads."""
 
 import multiprocessing as mp
+import os
 from queue import Empty, Full
+import signal
 import time
 
 
-def _worker(config, source_file, frames, events, stop):
+def _worker(config, source_file, frames, events, stop, environment=None):
+    # Apply before loading native camera libraries. Inference device selection
+    # must not hide CUDA from the separate Argus/GStreamer capture process.
+    for name, value in (environment or {}).items():
+        if value is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = value
+    # Include a Python stack if OpenCV/GStreamer aborts in native code.
+    import faulthandler
+    faulthandler.enable()
     import cv2
 
     cap = None
@@ -47,13 +59,13 @@ def _worker(config, source_file, frames, events, stop):
 
 
 class Capture:
-    def __init__(self, config, source_file=None):
+    def __init__(self, config, source_file=None, environment=None):
         ctx = mp.get_context("spawn")
         self.frames = ctx.Queue(maxsize=1)
         self.events = ctx.Queue()
         self.stop = ctx.Event()
         self.process = ctx.Process(target=_worker,
-                                   args=(config, source_file, self.frames, self.events, self.stop),
+                                   args=(config, source_file, self.frames, self.events, self.stop, environment),
                                    daemon=True)
         self.process.start()
 
@@ -67,7 +79,19 @@ class Capture:
                     kind, message = self.events.get_nowait()
                 except Empty:
                     if not self.process.is_alive():
-                        raise RuntimeError("Capture process exited unexpectedly")
+                        code = self.process.exitcode
+                        detail = f"exit code {code}"
+                        if code is not None and code < 0:
+                            try:
+                                name = signal.Signals(-code).name
+                            except ValueError:
+                                name = f"signal {-code}"
+                            detail += f", {name}"
+                        raise RuntimeError(
+                            f"Capture process exited unexpectedly "
+                            f"(pid {self.process.pid}, {detail}); "
+                            "check worker stderr and kernel logs"
+                        )
                     continue
                 if kind == "eof":
                     raise EOFError(message)

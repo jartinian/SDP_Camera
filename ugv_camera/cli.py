@@ -151,6 +151,9 @@ def run(a):
     from .capture import Capture
     from .outputs import Recorder, RosObserver, StreamServer, UartObserver
 
+    # Ultralytics changes CUDA_VISIBLE_DEVICES (including hiding all GPUs for
+    # CPU inference). Argus still needs CUDA in the separate capture worker.
+    camera_environment = {"CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES")}
     model = load_model(a)
     session_id = uuid.uuid4().hex
     directory = a.output / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "_" + session_id[:8])
@@ -189,7 +192,8 @@ def run(a):
             uart = UartObserver(a.uart_port, a.uart_baud, a.uart_rate) if a.uart_port else None
             if uart:
                 stack.callback(uart.close)
-            capture = Capture(camera_config(a), str(a.source_file) if a.source_file else None)
+            capture = Capture(camera_config(a), str(a.source_file) if a.source_file else None,
+                              environment=camera_environment)
             stack.callback(capture.close)
             if a.show:
                 stack.callback(cv2.destroyAllWindows)
