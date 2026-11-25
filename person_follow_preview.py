@@ -228,7 +228,7 @@ class PersonFollowPreview(Node):
             desired_turn = 0.0
         else:
             desired_turn = self.clamp(
-                -0.8 * error, -0.20, 0.20
+                0.8 * error, -0.20, 0.20
             )
 
         # Smooth steering.

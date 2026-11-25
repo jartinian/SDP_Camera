@@ -289,56 +289,35 @@ class LaneTracker:
                         dtype=float
                     )
 
-                    # Fit a smooth path.
-                    degree = (
-                        2 if len(points) >= 7
-                        else 1
-                    )
 
-                    fitted = np.polyfit(
-                        py, px, degree
-                    )
+                    # Smooth the measured tape centers locally.
+                    # Avoid a global polynomial across sharp turns.
+                    order = np.argsort(py)
+                    ordered_y = py[order]
+                    ordered_x = px[order]
+                    smooth_x = ordered_x.copy()
 
-                    if degree == 1:
-                        fitted = np.array([
-                            0.0,
-                            fitted[0],
-                            fitted[1]
-                        ])
+                    if len(smooth_x) >= 3:
+                        smooth_x[1:-1] = (
+                            ordered_x[:-2]
+                            + 2 * ordered_x[1:-1]
+                            + ordered_x[2:]
+                        ) / 4.0
 
-                    residual = float(
-                        np.median(
-                            np.abs(
-                                np.polyval(
-                                    fitted, py
-                                ) - px
-                            )
-                        )
-                    )
+                    residual = float(np.median(
+                        np.abs(smooth_x - ordered_x)
+                    ))
 
                     if residual > 18:
                         continue
 
-                    # ------------------------------------------
-                    # V2 FIX: TARGET WITHIN THE VISIBLE TAPE
-                    # ------------------------------------------
+                    visible_target_y = int(np.clip(
+                        target_y, ordered_y[0], ordered_y[-1]
+                    ))
 
-                    # If tape ends above the cyan reference,
-                    # target the nearest visible point instead.
-                    visible_target_y = int(
-                        np.clip(
-                            target_y,
-                            np.min(py),
-                            np.max(py)
-                        )
-                    )
-
-                    target = float(
-                        np.polyval(
-                            fitted,
-                            visible_target_y
-                        )
-                    )
+                    target = float(np.interp(
+                        visible_target_y, ordered_y, smooth_x
+                    ))
 
                     if not (0 <= target < rw):
                         continue
@@ -354,12 +333,10 @@ class LaneTracker:
                         and self.missing_frames <= 3
                     ):
 
-                        previous_target = float(
-                            np.polyval(
-                                self.previous_curve,
-                                visible_target_y
-                            )
-                        )
+                        old_y, old_x = self.previous_curve
+                        previous_target = float(np.interp(
+                            visible_target_y, old_y, old_x
+                        ))
 
                         jump = abs(
                             target - previous_target
@@ -389,7 +366,8 @@ class LaneTracker:
 
                         best = (
                             quality,
-                            fitted,
+                            ordered_y,
+                            smooth_x,
                             points,
                             target,
                             visible_target_y
@@ -403,7 +381,8 @@ class LaneTracker:
 
                 (
                     _,
-                    curve,
+                    curve_y,
+                    curve_x,
                     points,
                     target,
                     visible_target_y
@@ -431,7 +410,9 @@ class LaneTracker:
                     )
 
                 self.smoothed_target_y = visible_target_y
-                self.previous_curve = curve
+                self.previous_curve = (
+                    curve_y.copy(), curve_x.copy()
+                )
                 self.missing_frames = 0
 
                 offset = (
@@ -456,14 +437,14 @@ class LaneTracker:
                     3
                 )
 
-                curve_x = np.polyval(
-                    curve, samples
+                sample_x = np.interp(
+                    samples, curve_y, curve_x
                 )
 
                 bend = float(
-                    curve_x[0]
-                    - 2 * curve_x[1]
-                    + curve_x[2]
+                    sample_x[0]
+                    - 2 * sample_x[1]
+                    + sample_x[2]
                 )
 
                 # Draw fitted path only where tape was measured.
@@ -484,7 +465,7 @@ class LaneTracker:
                 ):
 
                     x = int(
-                        np.polyval(curve, y)
+                        np.interp(y, curve_y, curve_x)
                     )
 
                     if 0 <= x < rw:
